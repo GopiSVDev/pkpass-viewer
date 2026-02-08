@@ -107,6 +107,31 @@ export default function App() {
         )}
       </main>
 
+      <section className="max-w-3xl mx-auto px-6 mt-24 text-zinc-600 space-y-6">
+        <h2 className="text-2xl font-bold text-black">
+          Open and Preview Apple Wallet Passes Online
+        </h2>
+
+        <p>
+          This free PKPASS viewer lets you open and preview Apple Wallet passes
+          directly in your browser. Your pass never leaves your device.
+        </p>
+
+        <p>
+          Supported pass types include boarding passes, event tickets, coupons,
+          and generic Apple Wallet passes.
+        </p>
+
+        <h3 className="text-xl font-semibold text-black">
+          Is this PKPASS viewer secure?
+        </h3>
+
+        <p>
+          Yes. All processing happens locally in your browser. Files are never
+          uploaded to a server.
+        </p>
+      </section>
+
       {error && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-red-600 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl">
           {error}
