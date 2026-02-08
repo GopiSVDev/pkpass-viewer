@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { QRCodeSVG } from "qrcode.react";
 import { Upload, Ticket, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import * as htmlToImage from "html-to-image";
 
 interface Barcode {
   message: string;
@@ -176,82 +177,113 @@ function PassPreview({
   passData: PassData;
   fields: FieldGroup | null;
 }) {
+  const passRef = React.useRef<HTMLDivElement>(null);
+
+  const downloadAsImage = async () => {
+    if (!passRef.current) return;
+
+    try {
+      const dataUrl = await htmlToImage.toPng(passRef.current, {
+        backgroundColor: passData.backgroundColor || "#ffffff",
+        pixelRatio: 3,
+      });
+
+      const link = document.createElement("a");
+      link.download = `${passData.serialNumber || "pkpass"}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Failed to export image", err);
+    }
+  };
+
   return (
-    <div className="flex justify-center">
-      <Card
-        className="w-full max-w-sm shadow-2xl rounded-[3rem] overflow-hidden"
-        style={{
-          backgroundColor: passData.backgroundColor || "#fff",
-          color: passData.foregroundColor || "#000",
-        }}
-      >
-        <CardHeader className="pt-10 pb-6 px-8 flex gap-4">
-          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-            <Ticket size={22} />
-          </div>
+    <div className="flex justify-center items-center flex-col">
+      <div className="flex justify-center mb-6">
+        <button
+          onClick={downloadAsImage}
+          className="inline-flex items-center gap-2 rounded-full bg-black/5 px-5 py-2 text-sm font-semibold text-zinc-700 hover:bg-black/10 hover:text-black transition"
+        >
+          Download image
+        </button>
+      </div>
 
-          <div className="flex-1 overflow-hidden">
-            <p
-              className="text-[10px] font-black uppercase opacity-70 truncate"
-              style={{ color: passData.labelColor }}
-            >
-              {passData.organizationName}
-            </p>
-            <CardTitle className="text-lg font-bold truncate">
-              {passData.logoText || passData.description}
-            </CardTitle>
-          </div>
-        </CardHeader>
-
-        <CardContent className="px-8 pb-10 space-y-8">
-          {fields?.primaryFields && (
-            <div className="flex justify-between py-6 border-y border-black/10">
-              {fields.primaryFields.map((f) => (
-                <div key={f.key}>
-                  <p
-                    className="text-[10px] font-bold uppercase opacity-60"
-                    style={{ color: passData.labelColor }}
-                  >
-                    {f.label}
-                  </p>
-                  <p className="text-4xl font-black tracking-tight">
-                    {f.value}
-                  </p>
-                </div>
-              ))}
+      <div ref={passRef}>
+        <Card
+          className="w-full max-w-sm shadow-2xl rounded-[3rem] overflow-hidden"
+          style={{
+            backgroundColor: passData.backgroundColor || "#fff",
+            color: passData.foregroundColor || "#000",
+          }}
+        >
+          <CardHeader className="pt-10 pb-6 px-8 flex gap-4">
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+              <Ticket size={22} />
             </div>
-          )}
 
-          <div className="grid grid-cols-2 gap-y-6">
-            {[
-              ...(fields?.secondaryFields || []),
-              ...(fields?.auxiliaryFields || []),
-            ]
-              .slice(0, 4)
-              .map((f) => (
-                <div key={f.key}>
-                  <p
-                    className="text-[10px] font-bold uppercase opacity-60"
-                    style={{ color: passData.labelColor }}
-                  >
-                    {f.label}
-                  </p>
-                  <p className="font-semibold text-sm truncate">{f.value}</p>
-                </div>
-              ))}
-          </div>
-
-          {passData.barcodes?.[0] && (
-            <div className="mt-4 p-6 bg-white rounded-[2rem] flex justify-center">
-              <QRCodeSVG
-                value={passData.barcodes[0].message}
-                size={160}
-                level="H"
-              />
+            <div className="flex-1 overflow-hidden">
+              <p
+                className="text-[10px] font-black uppercase opacity-70 truncate"
+                style={{ color: passData.labelColor }}
+              >
+                {passData.organizationName}
+              </p>
+              <CardTitle className="text-lg font-bold truncate">
+                {passData.logoText || passData.description}
+              </CardTitle>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+
+          <CardContent className="px-8 pb-10 space-y-8">
+            {fields?.primaryFields && (
+              <div className="flex justify-between py-6 border-y border-black/10">
+                {fields.primaryFields.map((f) => (
+                  <div key={f.key}>
+                    <p
+                      className="text-[10px] font-bold uppercase opacity-60"
+                      style={{ color: passData.labelColor }}
+                    >
+                      {f.label}
+                    </p>
+                    <p className="text-4xl font-black tracking-tight">
+                      {f.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-y-6">
+              {[
+                ...(fields?.secondaryFields || []),
+                ...(fields?.auxiliaryFields || []),
+              ]
+                .slice(0, 4)
+                .map((f) => (
+                  <div key={f.key}>
+                    <p
+                      className="text-[10px] font-bold uppercase opacity-60"
+                      style={{ color: passData.labelColor }}
+                    >
+                      {f.label}
+                    </p>
+                    <p className="font-semibold text-sm truncate">{f.value}</p>
+                  </div>
+                ))}
+            </div>
+
+            {passData.barcodes?.[0] && (
+              <div className="mt-4 p-6 bg-white rounded-[2rem] flex justify-center">
+                <QRCodeSVG
+                  value={passData.barcodes[0].message}
+                  size={160}
+                  level="H"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
