@@ -198,7 +198,7 @@ function PassPreview({
   };
 
   return (
-    <div className="flex justify-center items-center flex-col">
+    <div className="flex justify-center items-center flex-col ">
       <div className="flex justify-center mb-6">
         <button
           onClick={downloadAsImage}
@@ -208,9 +208,12 @@ function PassPreview({
         </button>
       </div>
 
-      <div ref={passRef}>
+      <div
+        ref={passRef}
+        className="rounded-[3rem] overflow-hidden ring-1 ring-black/10 shadow-2xl"
+      >
         <Card
-          className="w-full max-w-sm shadow-2xl rounded-[3rem] overflow-hidden"
+          className="w-full max-w-sm rounded-[3rem] overflow-hidden"
           style={{
             backgroundColor: passData.backgroundColor || "#fff",
             color: passData.foregroundColor || "#000",
