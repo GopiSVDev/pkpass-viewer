@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import JSZip from "jszip";
 import { QRCodeSVG } from "qrcode.react";
-import { Upload, Ticket, RotateCcw } from "lucide-react";
+import { Upload, Ticket, RotateCcw, Github } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import * as htmlToImage from "html-to-image";
 
@@ -79,7 +79,7 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] pb-20">
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] pb-10">
       <main className="max-w-6xl mx-auto px-6 pt-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
@@ -138,6 +138,18 @@ export default function App() {
           {error}
         </div>
       )}
+
+      <footer className="mt-10 flex justify-center">
+        <a
+          href="https://github.com/GopiSVDev/pkpass-viewer"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-black transition"
+        >
+          <Github size={16} />
+          <span>GitHub</span>
+        </a>
+      </footer>
     </div>
   );
 }
