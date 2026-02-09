@@ -1,7 +1,15 @@
 import React, { useCallback, useMemo, useState } from "react";
 import JSZip from "jszip";
 import { QRCodeSVG } from "qrcode.react";
-import { Upload, Ticket, RotateCcw } from "lucide-react";
+import {
+  Upload,
+  Ticket,
+  RotateCcw,
+  Eye,
+  EyeOff,
+  FileJson,
+  ImageIcon,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import * as htmlToImage from "html-to-image";
 
@@ -47,7 +55,12 @@ interface PassData {
 export default function App() {
   const [passData, setPassData] = useState<PassData | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-
+  const [zip, setZip] = useState<JSZip | null>(null);
+  const [zipFiles, setZipFiles] = useState<string[]>([]);
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<string>("pass.json");
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [fileBlobUrl, setFileBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const fields = useMemo<FieldGroup | null>(() => {
@@ -61,6 +74,26 @@ export default function App() {
     );
   }, [passData]);
 
+  const loadFile = useCallback(async (zipInstance: JSZip, name: string) => {
+    setSelectedFile(name);
+    setFileContent(null);
+    setFileBlobUrl(null);
+
+    const file = zipInstance.file(name);
+    if (!file) return;
+
+    if (name.endsWith(".json")) {
+      const text = await file.async("string");
+      setFileContent(JSON.stringify(JSON.parse(text), null, 2));
+    } else if (name.match(/\.(png|jpg|jpeg)$/)) {
+      const blob = await file.async("blob");
+      setFileBlobUrl(URL.createObjectURL(blob));
+    } else {
+      const text = await file.async("string");
+      setFileContent(text);
+    }
+  }, []);
+
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -68,9 +101,21 @@ export default function App() {
 
       try {
         setError("");
-        setLogoUrl(null);
+        setShowDetails(false);
 
         const zip = await JSZip.loadAsync(file);
+
+        setZip(zip);
+
+        const files = Object.keys(zip.files).sort((a, b) => {
+          if (a.endsWith(".json")) return -1;
+          if (b.endsWith(".json")) return 1;
+          return a.localeCompare(b);
+        });
+
+        setZipFiles(files);
+        setSelectedFile("pass.json");
+        await loadFile(zip, "pass.json");
 
         const jsonText = await zip.file("pass.json")?.async("string");
         if (!jsonText) throw new Error();
@@ -92,12 +137,12 @@ export default function App() {
         setError("This file is not a valid .pkpass archive.");
       }
     },
-    [],
+    [loadFile],
   );
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] pb-10">
-      <main className="max-w-6xl mx-auto px-6 pt-10">
+      <main className="max-w-7xl mx-auto px-6 pt-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div className="flex items-center gap-3">
@@ -108,20 +153,90 @@ export default function App() {
           </div>
 
           {passData && (
-            <button
-              onClick={() => setPassData(null)}
-              className="flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-black"
-            >
-              <RotateCcw size={16} />
-              Reset
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowDetails((v) => !v)}
+                className="flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-black"
+              >
+                {showDetails ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showDetails ? "Hide details" : "View details"}
+              </button>
+
+              <button
+                onClick={() => {
+                  setPassData(null);
+                  setZip(null);
+                }}
+                className="flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-black"
+              >
+                <RotateCcw size={16} />
+                Reset
+              </button>
+            </div>
           )}
         </div>
 
         {!passData ? (
           <UploadView onUpload={handleUpload} />
         ) : (
-          <PassPreview passData={passData} fields={fields} logoUrl={logoUrl} />
+          <div className="flex gap-10 flex-col md:flex-row">
+            {/* Pass preview */}
+            <div
+              className={`transition-all duration-300 ${
+                showDetails ? "w-1/2" : "w-full"
+              } flex justify-center items-start`}
+            >
+              <PassPreview
+                passData={passData}
+                fields={fields}
+                logoUrl={logoUrl}
+              />
+            </div>
+
+            {/* Details panel */}
+            {showDetails && (
+              <div className="bg-white shadow-xl p-6 flex flex-col w-[65%]">
+                <div className="flex gap-3 overflow-x-auto pb-4 border-b">
+                  {zipFiles.map((name) => (
+                    <button
+                      key={name}
+                      onClick={() => zip && loadFile(zip, name)}
+                      className={`whitespace-nowrap px-4 py-1.5 text-sm font-semibold flex flex-row items-center gap-1 cursor-pointer ${
+                        selectedFile === name
+                          ? "bg-[#252526] text-white"
+                          : "text-zinc-400 hover:text-black"
+                      }`}
+                    >
+                      {name.endsWith(".json") ? (
+                        <FileJson size={14} />
+                      ) : (
+                        <ImageIcon size={14} />
+                      )}
+                      {name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex-1 flex items-center justify-center text-zinc-500 text-lg font-semibold">
+                  {fileContent && (
+                    <pre className="whitespace-pre-wrap text-black">
+                      {fileContent}
+                    </pre>
+                  )}
+
+                  {fileBlobUrl && (
+                    <div className="flex flex-col items-center gap-4">
+                      <img
+                        src={fileBlobUrl}
+                        className="max-w-xs border border-white/10"
+                      />
+                      <p className="text-zinc-500 text-xs">{selectedFile}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </main>
 
