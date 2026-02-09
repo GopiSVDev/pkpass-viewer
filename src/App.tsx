@@ -46,6 +46,8 @@ interface PassData {
 
 export default function App() {
   const [passData, setPassData] = useState<PassData | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
   const [error, setError] = useState("");
 
   const fields = useMemo<FieldGroup | null>(() => {
@@ -66,11 +68,26 @@ export default function App() {
 
       try {
         setError("");
+        setLogoUrl(null);
+
         const zip = await JSZip.loadAsync(file);
+
         const jsonText = await zip.file("pass.json")?.async("string");
         if (!jsonText) throw new Error();
 
         setPassData(JSON.parse(jsonText));
+
+        const logoFile =
+          zip.file("logo@2x.png") ||
+          zip.file("logo.png") ||
+          zip.file("icon@2x.png") ||
+          zip.file("icon.png");
+
+        if (logoFile) {
+          const blob = await logoFile.async("blob");
+          const url = URL.createObjectURL(blob);
+          setLogoUrl(url);
+        }
       } catch {
         setError("This file is not a valid .pkpass archive.");
       }
@@ -104,7 +121,7 @@ export default function App() {
         {!passData ? (
           <UploadView onUpload={handleUpload} />
         ) : (
-          <PassPreview passData={passData} fields={fields} />
+          <PassPreview passData={passData} fields={fields} logoUrl={logoUrl} />
         )}
       </main>
 
@@ -173,9 +190,11 @@ function UploadView({
 function PassPreview({
   passData,
   fields,
+  logoUrl,
 }: {
   passData: PassData;
   fields: FieldGroup | null;
+  logoUrl: string | null;
 }) {
   const passRef = React.useRef<HTMLDivElement>(null);
 
@@ -221,7 +240,15 @@ function PassPreview({
         >
           <CardHeader className="pt-10 pb-6 px-8 flex gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-              <Ticket size={22} />
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Pass logo"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <Ticket size={22} />
+              )}
             </div>
 
             <div className="flex-1 overflow-hidden">
