@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import * as htmlToImage from "html-to-image";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface Barcode {
   message: string;
@@ -61,6 +63,16 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState<string>("pass.json");
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileBlobUrl, setFileBlobUrl] = useState<string | null>(null);
+  const [imageMeta, setImageMeta] = useState<{
+    name: string;
+    size: number;
+    width: number;
+    height: number;
+    type: string;
+    scale?: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
+
   const [error, setError] = useState("");
 
   const fields = useMemo<FieldGroup | null>(() => {
@@ -87,7 +99,27 @@ export default function App() {
       setFileContent(JSON.stringify(JSON.parse(text), null, 2));
     } else if (name.match(/\.(png|jpg|jpeg)$/)) {
       const blob = await file.async("blob");
-      setFileBlobUrl(URL.createObjectURL(blob));
+      const url = URL.createObjectURL(blob);
+
+      const img = new Image();
+      img.src = url;
+
+      img.onload = () => {
+        setImageMeta({
+          name,
+          size: blob.size,
+          width: img.width,
+          height: img.height,
+          type: blob.type,
+          scale: name.includes("@2x")
+            ? "@2x"
+            : name.includes("@3x")
+              ? "@3x"
+              : "@1x",
+        });
+      };
+
+      setFileBlobUrl(url);
     } else {
       const text = await file.async("string");
       setFileContent(text);
@@ -139,6 +171,12 @@ export default function App() {
     },
     [loadFile],
   );
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(fileContent);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] pb-10">
@@ -219,18 +257,76 @@ export default function App() {
 
                 <div className="flex-1 flex items-center justify-center text-zinc-500 text-lg font-semibold">
                   {fileContent && (
-                    <pre className="whitespace-pre-wrap text-black">
-                      {fileContent}
-                    </pre>
+                    <div className="w-full h-full overflow-auto text-sm relative">
+                      <button
+                        onClick={handleCopy}
+                        className={`absolute top-3 right-3 z-10 text-xs font-semibold px-3 py-1.5 cursor-pointer rounded-full transition ${
+                          copied
+                            ? "bg-green-100 text-green-700"
+                            : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                        }`}
+                      >
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+
+                      <SyntaxHighlighter
+                        language="json"
+                        style={vscDarkPlus}
+                        showLineNumbers
+                        wrapLines
+                        customStyle={{
+                          background: "#1e1e1e",
+                          margin: 0,
+                          height: "100%",
+                          fontSize: "13px",
+                        }}
+                        lineNumberStyle={{
+                          color: "#6b7280",
+                          minWidth: "3em",
+                          paddingRight: "1em",
+                        }}
+                      >
+                        {fileContent}
+                      </SyntaxHighlighter>
+                    </div>
                   )}
 
-                  {fileBlobUrl && (
-                    <div className="flex flex-col items-center gap-4">
-                      <img
-                        src={fileBlobUrl}
-                        className="max-w-xs border border-white/10"
-                      />
-                      <p className="text-zinc-500 text-xs">{selectedFile}</p>
+                  {fileBlobUrl && imageMeta && (
+                    <div className="w-full h-full overflow-auto p-6 flex flex-col gap-6 items-center">
+                      {/* Image */}
+                      <div className="flex justify-center">
+                        <img
+                          src={fileBlobUrl}
+                          alt={imageMeta.name}
+                          className="max-w-full max-h-[60vh] object-contain"
+                        />
+                      </div>
+
+                      <div className="w-full max-w-xl bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden">
+                        <div className="grid grid-cols-2 gap-y-4 gap-x-6 p-6 text-sm">
+                          <MetaItem label="File" value={imageMeta.name} />
+                          <MetaItem label="Type" value={imageMeta.type} />
+                          <MetaItem
+                            label="Dimensions"
+                            value={`${imageMeta.width} × ${imageMeta.height}`}
+                          />
+                          <MetaItem
+                            label="Size"
+                            value={`${(imageMeta.size / 1024).toFixed(1)} KB`}
+                          />
+                          <MetaItem label="Scale" value={imageMeta.scale!} />
+                        </div>
+
+                        <div className="flex justify-end px-6 pb-4">
+                          <a
+                            href={fileBlobUrl}
+                            download={imageMeta.name}
+                            className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition"
+                          >
+                            Download image
+                          </a>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -429,6 +525,17 @@ function PassPreview({
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function MetaItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        {label}
+      </span>
+      <span className="text-sm font-semibold text-zinc-900">{value}</span>
     </div>
   );
 }
