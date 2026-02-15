@@ -173,7 +173,7 @@ export default function App() {
   );
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(fileContent);
+    await navigator.clipboard.writeText(fileContent as string);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
   };
@@ -217,11 +217,11 @@ export default function App() {
         {!passData ? (
           <UploadView onUpload={handleUpload} />
         ) : (
-          <div className="flex gap-10 flex-col md:flex-row">
+          <div className="flex gap-10 flex-col md:flex-row items-center md:items-start">
             {/* Pass preview */}
             <div
               className={`transition-all duration-300 ${
-                showDetails ? "w-1/2" : "w-full"
+                showDetails ? "md:w-1/2" : "w-full"
               } flex justify-center items-start`}
             >
               <PassPreview
@@ -233,7 +233,7 @@ export default function App() {
 
             {/* Details panel */}
             {showDetails && (
-              <div className="bg-white shadow-xl p-6 flex flex-col w-[65%]">
+              <div className="bg-white shadow-xl p-6 flex flex-col w-full md:w-[65%]">
                 <div className="flex gap-3 overflow-x-auto pb-4 border-b">
                   {zipFiles.map((name) => (
                     <button
